@@ -8,8 +8,9 @@
 FILE *file_log;
 
 char *status_list[] = {"awake", "drifting", "numbness"};
+const char *isi_asli = "A promise to keep going, even when unseen.\n";
 
-void tulis_log(char *msg) {
+void tulis_log(const char *msg) {
     file_log = fopen("work.log", "a");
     if (file_log == NULL) return;
 
@@ -22,10 +23,29 @@ void buat_contract() {
     if (f == NULL) return;
 
     time_t now = time(NULL);
-    fprintf(f, "A promise to keep going, even when unseen.\n");
+    fprintf(f, "%s", isi_asli);
     fprintf(f, "created at: %s", ctime(&now));
 
     fclose(f);
+}
+
+void log_restore_time() {
+    char restore_msg[100];
+    time_t t = time(NULL);
+    struct tm *tm_info = localtime(&t);
+
+    sprintf(restore_msg, "restored at: %02d:%02d:%02d",
+            tm_info->tm_hour,
+            tm_info->tm_min,
+            tm_info->tm_sec);
+
+    tulis_log(restore_msg);
+}
+
+void restore_contract_karena_diubah() {
+    buat_contract();
+    tulis_log("contract violated.");
+    log_restore_time();
 }
 
 void handler(int sig) {
@@ -37,15 +57,23 @@ void handler(int sig) {
 int main() {
     pid_t pid = fork();
 
-    if (pid < 0) exit(EXIT_FAILURE);
-    if (pid > 0) exit(EXIT_SUCCESS);
+    if (pid < 0) {
+        printf("[ERROR] Gagal membuat daemon.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
 
     signal(SIGTERM, handler);
     signal(SIGINT, handler);
 
     srand(time(NULL));
 
-    char last_content[256] = "";
+    if (access("contract.txt", F_OK) != 0) {
+        buat_contract();
+    }
 
     while (1) {
         int r = rand() % 3;
@@ -58,28 +86,15 @@ int main() {
 
         if (f == NULL) {
             buat_contract();
-
-            char restore_msg[100];
-
-            // 🔥 BAGIAN YANG SUDAH DIPERBAIKI
-            time_t t = time(NULL);
-            struct tm *tm_info = localtime(&t);
-            sprintf(restore_msg, "restored at: %02d:%02d:%02d",
-                    tm_info->tm_hour,
-                    tm_info->tm_min,
-                    tm_info->tm_sec);
-
-            tulis_log(restore_msg);
+            log_restore_time();
         } else {
-            char buffer[256] = "";
+            char buffer[512] = "";
             fread(buffer, 1, sizeof(buffer) - 1, f);
             fclose(f);
 
-            if (strlen(last_content) != 0 && strcmp(buffer, last_content) != 0) {
-                tulis_log("contract violated.");
+            if (strstr(buffer, isi_asli) == NULL) {
+                restore_contract_karena_diubah();
             }
-
-            strcpy(last_content, buffer);
         }
 
         sleep(5);
