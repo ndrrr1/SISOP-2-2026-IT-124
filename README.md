@@ -1336,6 +1336,3 @@ Dari tiga soal ini, saya jadi lebih paham bahwa process di Linux bukan cuma soal
 * **Soal 3** menggabungkan daemon, penamaan process, encode/decode, dan logging
 
 Secara keseluruhan, semua program sudah berhasil dijalankan sesuai kebutuhan soal dan menghasilkan output yang diminta.
-
-```
-```
